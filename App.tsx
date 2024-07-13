@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { View, PanResponder, Platform } from 'react-native';
 import { GLView } from "expo-gl";
 import { Renderer, THREE } from "expo-three";
-import { GridHelper, PerspectiveCamera, Scene, CubeTextureLoader } from "three";
+import { PerspectiveCamera, Scene, CubeTextureLoader, TextureLoader, PointLight, Vector2, Vector3 } from "three";
 
 const moveSpeed = 0.2;
 const rotateSpeed = 0.05;
@@ -42,9 +42,14 @@ function createSphere() {
 
 function createPlane() {
   const geometry = new THREE.PlaneGeometry(25, 25);
+  const textureLoader = new TextureLoader();
+  const waterTexture = textureLoader.load("https://media.istockphoto.com/id/1355902841/ru/%D1%84%D0%BE%D1%82%D0%BE/%D0%B0%D0%B1%D1%81%D1%82%D1%80%D0%B0%D0%BA%D1%86%D0%B8%D1%8F-%D0%B3%D0%BE%D0%BB%D1%83%D0%B1%D0%BE%D0%B9-%D0%B2%D0%BE%D0%BB%D0%BD%D1%8B-%D0%B2%D0%BE%D0%B4%D1%8B-%D0%B8%D0%BB%D0%B8-%D0%B5%D1%81%D1%82%D0%B5%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F-%D1%82%D0%B5%D0%BA%D1%81%D1%82%D1%83%D1%80%D0%B0-%D0%BF%D1%83%D0%B7%D1%8B%D1%80%D1%8C%D0%BA%D0%BE%D0%B2-%D0%B3%D0%B5%D0%BB%D0%B5%D0%B2%D0%BE%D0%B5-%D0%BC%D1%8B%D0%BB%D0%BE-%D1%84%D0%BE%D0%BD%D0%BE%D0%B2%D0%B0%D1%8F.jpg?s=612x612&w=0&k=20&c=bSzVCKTWM9lsDTwH-wwXxLB2wOQJcOaR0jgICmvfYVc=");
   const material = new THREE.MeshStandardMaterial({
-    color: 0xeeeeee,
-    side: THREE.DoubleSide
+    color: 0xffffff, // Светлый цвет
+    side: THREE.DoubleSide,
+    map: waterTexture,
+    roughness: 0.3,
+    metalness: 0.1
   });
   const plane = new THREE.Mesh(geometry, material);
   plane.rotation.x = Math.PI / 2;
@@ -54,29 +59,22 @@ function createPlane() {
   return plane;
 }
 
-function createGrid() {
-  const grid = new THREE.GridHelper(25, 25);
-  // grid.receiveShadow = true;
-  
-  return grid;
-}
-
-function createRedCube() {
-  const geometry = new THREE.BoxGeometry(1,1,1);
+function createRedCube(position: Vector3) {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({
     color: 0xff0000,
     roughness: 1,
     metalness: 0
   });
   const cube = new THREE.Mesh(geometry, material);
-  cube.position.set(0, 0.5, 0);
+  cube.position.copy(position);
   cube.castShadow = true;
   cube.receiveShadow = true;
 
   return cube;
 }
 
-function createMetalCone() {
+function createMetalCone(position: Vector3) {
   const geometry = new THREE.ConeGeometry(0.5, 1, 32);
   const material = new THREE.MeshStandardMaterial({
     color: 0xaaaaaa,
@@ -87,7 +85,7 @@ function createMetalCone() {
   })
 
   const cone = new THREE.Mesh(geometry, material);
-  cone.position.set(2, 0.5, 0);
+  cone.position.copy(position);
   cone.castShadow = true;
   cone.receiveShadow = true;
 
@@ -99,16 +97,22 @@ export default function App() {
   
   const sphere = createSphere();
   const plane = createPlane();
-  const grid = createGrid();
-  const redCube = createRedCube();
-  const metalCone = createMetalCone();
+  const redCube1 = createRedCube(new THREE.Vector3(2, 0.5, 0));
+  const redCube2 = createRedCube(new THREE.Vector3(-2, 0.5, 0));
+  const redCube3 = createRedCube(new THREE.Vector3(0, 0.5, 2));
+  const metalCone1 = createMetalCone(new THREE.Vector3(0, 0.5, -2));
+  const metalCone2 = createMetalCone(new THREE.Vector3(2, 0.5, 2));
+  const metalCone3 = createMetalCone(new THREE.Vector3(-2, 0.5, -2));
 
   const group = new THREE.Group();
   group.add(sphere);
   group.add(plane);
-  group.add(grid);
-  group.add(redCube);
-  group.add(metalCone);
+  group.add(redCube1);
+  group.add(redCube2);
+  group.add(redCube3);
+  group.add(metalCone1);
+  group.add(metalCone2);
+  group.add(metalCone3);
 
   let rotationX = 0;
   let rotationY = 0;
@@ -227,6 +231,10 @@ export default function App() {
           directionalLight.shadow.camera.top = 10;
           directionalLight.shadow.camera.bottom = -10;
           scene.add(directionalLight);
+
+          const pointLight = new PointLight(0xff00ff, 1, 25);
+          pointLight.position.set(5, 5, 5);
+          scene.add(pointLight);
 
           scene.add(group);
           scene.castShadow = true;
